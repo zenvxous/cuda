@@ -273,12 +273,13 @@ int main(int argc, char** argv) {
                 << "║\n╚" << repeat_utf8("═", 76) << "╝\n\n";
 
       std::cout << "Сборка\n";
-      print_field("Архитектура", "x86-64");
-      print_field("Ручной SIMD", "SSE2 (регистры xmm, 128 бит = 2 × double)");
+      print_field("Архитектура", "arm64 (AArch64)");
+      print_field("Ручной SIMD", "NEON (регистры v, 128 бит = 2 × double)");
       print_field("Компилятор", __VERSION__);
       print_field("Флаги (общие)", LAB1_CXXFLAGS);
       print_field("Флаги (без вект.)", std::string("+ ") + LAB1_NOVEC_FLAGS);
-      print_field("Счётчик тактов", "__rdtsc() (такты процессора)");
+      print_field("Счётчик тактов", "cntvct_el0 (такты системного таймера), " +
+                                            format_number(lab1::tick_counter_hz() / 1e6, 2) + " МГц");
       print_field("Часы", "std::chrono::high_resolution_clock");
 
       std::cout << "\nЗадача\n";
@@ -315,7 +316,7 @@ int main(int argc, char** argv) {
 
     Variant novec{"C1  скаляр, векторизация ВЫКЛ", "scalar_novec", 0, 0, 0, false};
     Variant automatic{"C1  скаляр, автовекторизация", "scalar_auto", 0, 0, 0, false};
-    Variant simd{"C2  ручной SIMD (SSE2)", "manual_simd", 0, 0, 0, false};
+    Variant simd{"C2  ручной SIMD (NEON)", "manual_simd", 0, 0, 0, false};
 
     if (!options.skip_novec) {
       run_variant(novec, options.repeat, quiet, [&] { lab1::multiply_novec(a, b, c_novec); });

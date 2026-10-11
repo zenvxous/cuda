@@ -7,11 +7,12 @@ SIZE     ?= 448
 REPEAT   ?= 1
 ARGS     ?=
 EXTRA    ?=
+ROW_STEP ?= 2
 
 STD           := -std=c++17
 RELEASE_FLAGS := -O3 -DNDEBUG
 FP_FLAGS      := -ffp-contract=off
-ARCH_FLAGS    := -msse2
+ARCH_FLAGS    := -mcpu=native
 WARN_FLAGS    := -Wall -Wextra
 
 IS_CLANG := $(shell $(CXX) --version 2>/dev/null | grep -ci clang)
@@ -28,7 +29,7 @@ INFO_FLAGS := -DLAB1_CXXFLAGS='"$(RELEASE_FLAGS) $(FP_FLAGS) $(ARCH_FLAGS)"' \
               -DLAB1_NOVEC_FLAGS='"$(NOVEC_FLAGS)"'
 
 CXXFLAGS := $(STD) $(RELEASE_FLAGS) $(FP_FLAGS) $(ARCH_FLAGS) $(WARN_FLAGS) \
-            -Iinclude -DBLK=$(BLK) $(EXTRA)
+            -Iinclude -DBLK=$(BLK) -DLAB1_ROW_STEP=$(ROW_STEP) $(EXTRA)
 
 OBJS := $(BUILD)/main.o $(BUILD)/block_matrix.o $(BUILD)/multiply_simd.o \
         $(BUILD)/multiply_auto.o $(BUILD)/multiply_novec.o
@@ -81,13 +82,13 @@ asm: | $(BUILD)
 	@echo "  Объектный файл                        векторных    скалярных"
 	@echo "  ────────────────────────────────── ──────────── ────────────"
 	@for f in multiply_novec multiply_auto multiply_simd; do \
-	  v=$$(grep -cE '^[[:space:]]*(mulpd|addpd)' $(BUILD)/$$f.s || true); \
-	  s=$$(grep -cE '^[[:space:]]*(mulsd|addsd)' $(BUILD)/$$f.s || true); \
+	  v=$$(grep -cE '^[[:space:]]*(fmul|fadd|fmla)(\.2d[[:space:]]+v|[[:space:]]+v[0-9]+\.2d)' $(BUILD)/$$f.s || true); \
+	  s=$$(grep -cE '^[[:space:]]*(fmul|fadd|fmadd)[[:space:]]+d[0-9]+' $(BUILD)/$$f.s || true); \
 	  printf "  %-34s %12s %12s\n" "$$f.s" "$$v" "$$s"; \
 	done
 	@echo ""
-	@echo "  векторных = mulpd/addpd (packed, две операции double за инструкцию)"
-	@echo "  скалярных = mulsd/addsd (scalar, одна операция double за инструкцию)"
+	@echo "  векторных = fmul/fadd v<N>.2d (две операции double за инструкцию)"
+	@echo "  скалярных = fmul/fadd d<N>    (одна операция double за инструкцию)"
 	@echo ""
 
 vecreport: | $(BUILD)
@@ -127,7 +128,7 @@ help:
 	@echo "  make no-pragma-check убедиться, что прагм векторизации в коде нет"
 	@echo "  make clean           удалить build/"
 	@echo ""
-	@echo "Переменные: SIZE=<L или L,M,N>  REPEAT=<N>  BLK=<N>  ARGS='<флаги>'  EXTRA='<флаги компилятора>'"
+	@echo "Переменные: SIZE=<L или L,M,N>  REPEAT=<N>  BLK=<N>  ROW_STEP=<2|4>  ARGS='<флаги>'  EXTRA='<флаги>'"
 	@echo "Например:   make run SIZE=320 REPEAT=3"
 	@echo "            make run ARGS='--skip-novec'"
 	@echo "            ./$(TARGET) --help"
